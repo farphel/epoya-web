@@ -1,14 +1,21 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "epoya-web",
+  "main": "src/index.ts",
   "compatibility_date": "2026-05-02",
   "observability": {
-    "enabled": true
+    "enabled": true,
+    "invocation_logs": true,
+    "logs": { "enabled": true }
+  },
+  "triggers": {
+    "crons": ["55 4 * * *"] // 5 minutes before 5 am every day
   },
   "assets": {
     "directory": "public"
   },
   "compatibility_flags": [
     "nodejs_compat"
-  ]
+  ],
+  "kv_namespaces": [{ "binding": "EPOYA_CACHE", "id": "171cd2d2a3a84955b2744f44fffa3789" }]
 }

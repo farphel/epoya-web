@@ -5,7 +5,6 @@
   "compatibility_date": "2026-05-02",
   "observability": {
     "enabled": true,
-    "invocation_logs": true,
     "logs": { "enabled": true }
   },
   "triggers": {

@@ -1,126 +1,242 @@
-<html>
-<title>Epoya Game</title>
-<style>
-.contribution-grid {
-  display: grid;
-  grid-template-rows: repeat(7, 12px); /* 7 rows for 7 days */
-  grid-auto-flow: column;               /* Fill columns one by one */
-  grid-auto-columns: 12px;
-  gap: 3px;
-  margin-bottom: 20px;
-  overflow-x: auto;
-  padding: 10px;
-  background: #f6f8fa;
-  border-radius: 6px;
-}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Epoya Game - Devlog</title>
+    <style>
+        :root {
+            --bg-color: #ffffff;
+            --text-color: #1f2328;
+            --secondary-text: #636c76;
+            --border-color: #d0d7de;
+            --table-hover: #f6f8fa;
+            --code-bg: #eff1f3;
+            --cell-empty: #ebedf0;
+            --cell-outline: rgba(27, 31, 35, 0.06);
+            --lvl1: #9be9a8; --lvl2: #40c463; --lvl3: #30a14e; --lvl4: #216e39;
+            --toggle-active-bg: #ffffff;
+        }
 
-.cell {
-  width: 12px;
-  height: 12px;
-  border-radius: 2px;
-  background-color: #ebedf0; /* Default empty color */
-}
+        [data-theme="dark"] {
+            --bg-color: #0d1117;
+            --text-color: #e6edf3;
+            --secondary-text: #7d8590;
+            --border-color: #30363d;
+            --table-hover: #161b22;
+            --code-bg: #6e768166;
+            --cell-empty: #161b22;
+            --cell-outline: rgba(255, 255, 255, 0.05);
+            --lvl1: #0e4429; --lvl2: #006d32; --lvl3: #26a641; --lvl4: #39d353;
+            --toggle-active-bg: #1f242c;
+        }
 
-/* GitHub's signature green shades */
-.level-1 { background-color: #9be9a8; }
-.level-2 { background-color: #40c463; }
-.level-3 { background-color: #30a14e; }
-.level-4 { background-color: #216e39; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            color: var(--text-color);
+            background-color: var(--bg-color);
+            transition: background-color 0.2s;
+        }
 
-#commit-history {
-  width: 100%;
-  border-collapse: collapse;
-  font-family: monospace;
-  font-size: 0.9rem;
-}
+        /* THEME TOGGLE */
+        .header-nav { display: flex; justify-content: flex-end; margin-bottom: 20px; }
+        .toggle-group { display: flex; background: var(--table-hover); border: 1px solid var(--border-color); border-radius: 6px; padding: 2px; user-select: none; }
+        .toggle-option { padding: 6px 12px; font-size: 12px; font-weight: 600; cursor: pointer; border-radius: 4px; color: var(--secondary-text); }
+        .toggle-option.active { background: var(--toggle-active-bg); color: var(--text-color); box-shadow: 0 1px 3px rgba(0,0,0,0.1); outline: 1.5px solid var(--lvl3); }
 
-#commit-history th, #commit-history td {
-  text-align: left;
-  padding: 8px;
-  border-bottom: 1px solid #ddd;
-}
-</style>
+        /* GAME DESCRIPTION & IMAGE WRAP */
+        .game-info { overflow: auto; margin-bottom: 30px; }
+        .splash-img {
+            float: right;
+            width: 55%;
+            max-width: 400px;
+            margin: 0 0 20px 20px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+        .description-text p { margin-top: 0; margin-bottom: 16px; line-height: 1.6; }
 
-<script>
-  const WORKER_URL = 'http://localhost:8787'; // Change to production URL after testing
+        h3 { clear: both; margin-top: 40px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; }
 
-  async function initStats() {
-    try {
-      const response = await fetch(WORKER_URL);
-      const data = await response.json();
+        /* HEATMAP & TABLE STYLING */
+        .heatmap-wrapper { display: inline-grid; grid-template-areas: ". months" "days grid"; column-gap: 8px; padding: 16px; border: 1px solid var(--border-color); border-radius: 6px; background: var(--bg-color); }
+        .month-labels { grid-area: months; display: grid; grid-template-columns: repeat(27, 15px); font-size: 11px; color: var(--secondary-text); height: 20px; }
+        .day-labels { grid-area: days; display: grid; grid-template-rows: repeat(7, 12px); gap: 3px; font-size: 11px; color: var(--secondary-text); padding-top: 1px; }
+        .contribution-grid { grid-area: grid; display: grid; grid-template-rows: repeat(7, 12px); grid-auto-flow: column; grid-auto-columns: 12px; gap: 3px; }
+        .cell { width: 12px; height: 12px; border-radius: 2px; background-color: var(--cell-empty); outline: 1px solid var(--cell-outline); outline-offset: -1px; }
+        .level-1 { background-color: var(--lvl1); }
+        .level-2 { background-color: var(--lvl2); }
+        .level-3 { background-color: var(--lvl3); }
+        .level-4 { background-color: var(--lvl4); }
 
-      renderHeatmap(data.heatmap);
-      renderHistory(data.history);
-    } catch (err) {
-      console.error("Failed to load Epoya stats:", err);
-    }
-  }
-
-  function renderHeatmap(heatmapData) {
-    const grid = document.getElementById('heatmap');
-    const today = new Date();
-    
-    // We'll render the last 90 days
-    for (let i = 90; i >= 0; i--) {
-      const d = new Date();
-      d.setDate(today.getDate() - i);
-      const dateStr = d.toISOString().split('T')[0];
-      
-      const count = heatmapData[dateStr] || 0;
-      const cell = document.createElement('div');
-      cell.classList.add('cell');
-      cell.title = `${dateStr}: ${count} commits`;
-
-      // Assign color level
-      if (count > 0 && count < 3) cell.classList.add('level-1');
-      else if (count >= 3 && count < 6) cell.classList.add('level-2');
-      else if (count >= 6 && count < 9) cell.classList.add('level-3');
-      else if (count >= 9) cell.classList.add('level-4');
-
-      grid.appendChild(cell);
-    }
-  }
-
-  function renderHistory(history) {
-    const tbody = document.querySelector('#commit-history tbody');
-    history.forEach(commit => {
-      const row = `
-        <tr>
-          <td><a href="#">${commit.sha}</a></td>
-          <td>${commit.date}</td>
-          <td>${commit.author}</td>
-          <td>${commit.msg}</td>
-        </tr>`;
-      tbody.innerHTML += row;
-    });
-  }
-
-  initStats();
-</script>
-
+        #commit-history { width: 100%; border-collapse: collapse; font-family: ui-monospace, SFMono-Regular, monospace; font-size: 13px; }
+        #commit-history th, #commit-history td { text-align: left; padding: 12px 8px; border-bottom: 1px solid var(--border-color); }
+        #commit-history tr:hover { background-color: var(--table-hover); }
+        code { background: var(--code-bg); padding: 2px 4px; border-radius: 4px; }
+    </style>
+</head>
 <body>
-<h1>Epoya Game</h1>
-<img src="splashscreen-hd.png" />
-Epoya is an under-development, 2D game.
 
-<section id="stats-container">
-  <h3>Commit Activity</h3>
-  <div id="heatmap" class="contribution-grid"></div>
+    <nav class="header-nav">
+        <div class="toggle-group" id="theme-toggle-group">
+            <div class="toggle-option" id="light-opt" onclick="setTheme('light')">Light</div>
+            <div class="toggle-option" id="dark-opt" onclick="setTheme('dark')">Dark</div>
+        </div>
+    </nav>
 
-  <h3>Recent Updates</h3>
-  <table id="commit-history">
-    <thead>
-      <tr>
-        <th>SHA</th>
-        <th>Date</th>
-        <th>Author</th>
-        <th>Message</th>
-      </tr>
-    </thead>
-    <tbody>
-    </tbody>
-  </table>
-</section>
+    <h1>Epoya Game</h1>
+    
+    <section class="game-info">
+        <img src="splashscreen-hd.png" alt="Epoya Splash Screen" class="splash-img">
+        <div class="description-text">
 
+<p>
+<strong>Epoya</strong> is going to be (currently under heavy development)
+a top-down, 2D, vector art RPG game. The game is intended to be an open-world,
+sandbox, "horizontal progression" game inspired by games like Minecraft,
+Old School Rune Scape, and Stardew Valley.
+</p>
+
+<p>
+The game will feature multiple races, crafting, co-op play, exploration,
+economy, fishing, hardcore mode, quests, secret finding, housing, and
+more. The "killer feature" of the game will be the main story and a high
+degree of player agency (inspired by Undertale) that will make each
+adventurer's journey unique.
+</p>
+
+<p>
+At this point (mid-2026), the game is in very early development by a solo,
+indie, (inexperienced) game developer. It is likely to be quite some time
+before there is anything worth showing. Below is a mirror of GitHub
+activity to show that the game is actually being worked on slowly but surely.
+In the future, there will be devlogs on YouTube and a Steam page. Until
+then, enjoy the git stats!
+</p>
+
+
+        </div>
+    </section>
+    
+    <section id="stats-container">
+        <h3>6-Month Commit Activity</h3>
+        <div class="heatmap-wrapper">
+            <div id="month-labels" class="month-labels"></div>
+            <div class="day-labels">
+                <div></div><div>Mon</div><div></div><div>Wed</div><div></div><div>Fri</div><div></div>
+            </div>
+            <div id="heatmap" class="contribution-grid"></div>
+        </div>
+
+        <h3>Full Update History</h3>
+        <table id="commit-history">
+            <thead>
+                <tr>
+                    <th>SHA</th>
+                    <th>Date</th>
+                    <th>Author</th>
+                    <th>Message</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </section>
+
+    <script>
+        const WORKER_URL = '/api/stats';
+
+        function setTheme(theme) {
+            const lightOpt = document.getElementById('light-opt');
+            const darkOpt = document.getElementById('dark-opt');
+            if (theme === 'dark') {
+                document.documentElement.setAttribute('data-theme', 'dark');
+                darkOpt.classList.add('active');
+                lightOpt.classList.remove('active');
+                localStorage.setItem('theme', 'dark');
+            } else {
+                document.documentElement.removeAttribute('data-theme');
+                lightOpt.classList.add('active');
+                darkOpt.classList.remove('active');
+                localStorage.setItem('theme', 'light');
+            }
+        }
+
+        const savedTheme = localStorage.getItem('theme') || 
+            (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+        setTheme(savedTheme);
+
+        async function initStats() {
+            try {
+                const response = await fetch(WORKER_URL);
+                const data = await response.json();
+                if (data.heatmap && data.history) {
+                    renderHeatmap(data.heatmap);
+                    renderHistory(data.history);
+                }
+            } catch (err) { console.error("Stats load failed:", err); }
+        }
+
+        function renderHeatmap(heatmapData) {
+            const grid = document.getElementById('heatmap');
+            const monthRow = document.getElementById('month-labels');
+            const today = new Date();
+            const daysToRender = 182;
+            
+            grid.innerHTML = '';
+            monthRow.innerHTML = '';
+            let currentColumn = 1;
+            let lastMonth = -1;
+            const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+            const startDate = new Date(today);
+            startDate.setDate(today.getDate() - daysToRender);
+            while (startDate.getDay() !== 0) { startDate.setDate(startDate.getDate() - 1); }
+
+            for (let i = 0; i <= Math.floor((today - startDate) / 86400000); i++) {
+                const d = new Date(startDate);
+                d.setDate(startDate.getDate() + i);
+                const dateStr = d.toISOString().split('T')[0];
+                const currentMonth = d.getMonth();
+                
+                if (currentMonth !== lastMonth && d.getDay() === 0) {
+                    if (lastMonth !== -1 || d.getDate() <= 7) {
+                        const mLabel = document.createElement('div');
+                        mLabel.textContent = monthNames[currentMonth];
+                        mLabel.style.gridColumn = currentColumn;
+                        monthRow.appendChild(mLabel);
+                    }
+                    lastMonth = currentMonth;
+                }
+                if (d.getDay() === 6) currentColumn++;
+
+                const count = heatmapData[dateStr] || 0;
+                const cell = document.createElement('div');
+                cell.classList.add('cell');
+                cell.title = `${dateStr}: ${count} commits`;
+                if (count > 0) {
+                    if (count < 2) cell.classList.add('level-1');
+                    else if (count < 4) cell.classList.add('level-2');
+                    else if (count < 6) cell.classList.add('level-3');
+                    else cell.classList.add('level-4');
+                }
+                grid.appendChild(cell);
+            }
+        }
+
+        function renderHistory(history) {
+            const tbody = document.querySelector('#commit-history tbody');
+            tbody.innerHTML = history.map(c => `
+                <tr>
+                    <td><code>${c.sha}</code></td>
+                    <td>${c.date}</td>
+                    <td><strong>${c.author}</strong></td>
+                    <td>${c.msg}</td>
+                </tr>
+            `).join('');
+        }
+
+        initStats();
+    </script>
 </body>
 </html>

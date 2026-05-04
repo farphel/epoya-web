@@ -48,6 +48,7 @@
             color: var(--text-color);
             background-color: var(--bg-color);
             transition: background-color 0.2s;
+            box-sizing: border-box;
         }
 
         /* HEADER & TOGGLE */
@@ -61,34 +62,42 @@
         .splash-img { float: right; width: 40%; max-width: 400px; margin: 0 0 20px 20px; border-radius: 8px; border: 1px solid var(--border-color); }
         .description-text p { margin-top: 0; margin-bottom: 16px; line-height: 1.6; }
 
-        /* STATS SECTION LAYOUT */
+        /* STATS SECTION LAYOUT  - EQUAL HEIGHTS */
         .stats-grid-container {
             display: flex;
             gap: 20px;
-            flex-wrap: wrap;
-            align-items: flex-start;
+            align-items: stretch;
+            margin-bottom: 20px;
         }
 
         .heatmap-wrapper {
-            display: inline-grid;
-            grid-template-areas: ". months" "days grid";
-            column-gap: 8px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
             padding: 16px;
             border: 1px solid var(--border-color);
             border-radius: 6px;
             background: var(--bg-color);
         }
 
+        .heatmap-internal {
+            display: grid;
+            grid-template-areas: ". months" "days grid";
+            column-gap: 8px;
+        }
+
         .summary-stats {
             flex: 1;
-            min-width: 250px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
             padding: 16px;
             border: 1px solid var(--border-color);
             border-radius: 6px;
             background: var(--table-hover);
         }
 
-        .summary-stats p { margin: 8px 0; font-size: 14px; }
+        .summary-stats p { margin: 10px 0; font-size: 14px; }
         .summary-stats strong { color: var(--lvl4); font-size: 16px; }
 
         .month-labels { grid-area: months; display: grid; grid-template-columns: repeat(27, 15px); font-size: 11px; color: var(--secondary-text); height: 20px; }
@@ -155,11 +164,13 @@ then, enjoy the git stats!
         <h3>6-Month Commit Activity</h3>
         <div class="stats-grid-container">
             <div class="heatmap-wrapper">
-                <div id="month-labels" class="month-labels"></div>
-                <div class="day-labels">
-                    <div></div><div>Mon</div><div></div><div>Wed</div><div></div><div>Fri</div><div></div>
+                <div class="heatmap-internal">
+                    <div id="month-labels" class="month-labels"></div>
+                    <div class="day-labels">
+                        <div></div><div>Mon</div><div></div><div>Wed</div><div></div><div>Fri</div><div></div>
+                  </div>
+                  <div id="heatmap" class="contribution-grid"></div>
                 </div>
-                <div id="heatmap" class="contribution-grid"></div>
             </div>
 
             <div class="summary-stats">
@@ -220,33 +231,18 @@ then, enjoy the git stats!
             const dates = Object.keys(heatmap).sort();
             if (dates.length === 0) return;
 
-            // 1. Average (Commits / days from first commit to today)
             const firstDate = new Date(dates[0]);
             const today = new Date();
-            const diffDays = Math.max(1, Math.ceil((today - firstDate) / (1000 * 60 * 60 * 24)));
+            const diffDays = Math.max(1, Math.ceil((today - firstDate) / 86400000));
             document.getElementById('stat-avg').textContent = (totalCommits / diffDays).toFixed(2);
+            document.getElementById('stat-peak').textContent = Math.max(...Object.values(heatmap));
 
-            // 2. Peak
-            const peak = Math.max(...Object.values(heatmap));
-            document.getElementById('stat-peak').textContent = peak;
-
-            // 3. Longest Streak
-            let maxStreak = 0;
-            let currentStreak = 0;
-            const checkDate = new Date(today);
-
-            // Check the last 182 days for the streak
+            let maxStreak = 0, currentStreak = 0;
             for (let i = 0; i <= 182; i++) {
-                const d = new Date(today);
-                d.setDate(today.getDate() - i);
+                const d = new Date(today); d.setDate(today.getDate() - i);
                 const ds = d.toISOString().split('T')[0];
-                
-                if (heatmap[ds]) {
-                    currentStreak++;
-                    maxStreak = Math.max(maxStreak, currentStreak);
-                } else {
-                    currentStreak = 0;
-                }
+                if (heatmap[ds]) { currentStreak++; maxStreak = Math.max(maxStreak, currentStreak); }
+                else { currentStreak = 0; }
             }
             document.getElementById('stat-streak').textContent = maxStreak;
         }
@@ -258,15 +254,14 @@ then, enjoy the git stats!
             const daysToRender = 182;
             
             grid.innerHTML = ''; monthRow.innerHTML = '';
-            let currentColumn = 1; let lastMonth = -1;
+            let currentColumn = 1, lastMonth = -1;
             const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
             const startDate = new Date(today);
             startDate.setDate(today.getDate() - daysToRender);
             while (startDate.getDay() !== 0) { startDate.setDate(startDate.getDate() - 1); }
 
             for (let i = 0; i <= Math.floor((today - startDate) / 86400000); i++) {
-                const d = new Date(startDate);
-                d.setDate(startDate.getDate() + i);
+                const d = new Date(startDate); d.setDate(startDate.getDate() + i);
                 const dateStr = d.toISOString().split('T')[0];
                 const currentMonth = d.getMonth();
                 

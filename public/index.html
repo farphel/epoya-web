@@ -50,28 +50,47 @@
             transition: background-color 0.2s;
         }
 
-        /* THEME TOGGLE */
+        /* HEADER & TOGGLE */
         .header-nav { display: flex; justify-content: flex-end; margin-bottom: 20px; }
         .toggle-group { display: flex; background: var(--table-hover); border: 1px solid var(--border-color); border-radius: 6px; padding: 2px; user-select: none; }
         .toggle-option { padding: 6px 12px; font-size: 12px; font-weight: 600; cursor: pointer; border-radius: 4px; color: var(--secondary-text); }
         .toggle-option.active { background: var(--toggle-active-bg); color: var(--text-color); box-shadow: 0 1px 3px rgba(0,0,0,0.1); outline: 1.5px solid var(--lvl3); }
 
-        /* GAME DESCRIPTION & IMAGE WRAP */
+        /* GAME INFO */
         .game-info { overflow: auto; margin-bottom: 30px; }
-        .splash-img {
-            float: right;
-            width: 55%;
-            max-width: 400px;
-            margin: 0 0 20px 20px;
-            border-radius: 8px;
-            border: 1px solid var(--border-color);
-        }
+        .splash-img { float: right; width: 40%; max-width: 400px; margin: 0 0 20px 20px; border-radius: 8px; border: 1px solid var(--border-color); }
         .description-text p { margin-top: 0; margin-bottom: 16px; line-height: 1.6; }
 
-        h3 { clear: both; margin-top: 40px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; }
+        /* STATS SECTION LAYOUT */
+        .stats-grid-container {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            align-items: flex-start;
+        }
 
-        /* HEATMAP & TABLE STYLING */
-        .heatmap-wrapper { display: inline-grid; grid-template-areas: ". months" "days grid"; column-gap: 8px; padding: 16px; border: 1px solid var(--border-color); border-radius: 6px; background: var(--bg-color); }
+        .heatmap-wrapper {
+            display: inline-grid;
+            grid-template-areas: ". months" "days grid";
+            column-gap: 8px;
+            padding: 16px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            background: var(--bg-color);
+        }
+
+        .summary-stats {
+            flex: 1;
+            min-width: 250px;
+            padding: 16px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            background: var(--table-hover);
+        }
+
+        .summary-stats p { margin: 8px 0; font-size: 14px; }
+        .summary-stats strong { color: var(--lvl4); font-size: 16px; }
+
         .month-labels { grid-area: months; display: grid; grid-template-columns: repeat(27, 15px); font-size: 11px; color: var(--secondary-text); height: 20px; }
         .day-labels { grid-area: days; display: grid; grid-template-rows: repeat(7, 12px); gap: 3px; font-size: 11px; color: var(--secondary-text); padding-top: 1px; }
         .contribution-grid { grid-area: grid; display: grid; grid-template-rows: repeat(7, 12px); grid-auto-flow: column; grid-auto-columns: 12px; gap: 3px; }
@@ -81,7 +100,9 @@
         .level-3 { background-color: var(--lvl3); }
         .level-4 { background-color: var(--lvl4); }
 
-        #commit-history { width: 100%; border-collapse: collapse; font-family: ui-monospace, SFMono-Regular, monospace; font-size: 13px; white-space: nowrap; }
+        h3 { clear: both; margin-top: 40px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; }
+
+        #commit-history { width: 100%; border-collapse: collapse; font-family: ui-monospace, SFMono-Regular, monospace; font-size: 13px; }
         #commit-history th, #commit-history td { text-align: left; padding: 12px 8px; border-bottom: 1px solid var(--border-color); }
         #commit-history tr:hover { background-color: var(--table-hover); }
         code { background: var(--code-bg); padding: 2px 4px; border-radius: 4px; }
@@ -132,15 +153,23 @@ then, enjoy the git stats!
     
     <section id="stats-container">
         <h3>6-Month Commit Activity</h3>
-        <div class="heatmap-wrapper">
-            <div id="month-labels" class="month-labels"></div>
-            <div class="day-labels">
-                <div></div><div>Mon</div><div></div><div>Wed</div><div></div><div>Fri</div><div></div>
+        <div class="stats-grid-container">
+            <div class="heatmap-wrapper">
+                <div id="month-labels" class="month-labels"></div>
+                <div class="day-labels">
+                    <div></div><div>Mon</div><div></div><div>Wed</div><div></div><div>Fri</div><div></div>
+                </div>
+                <div id="heatmap" class="contribution-grid"></div>
             </div>
-            <div id="heatmap" class="contribution-grid"></div>
+
+            <div class="summary-stats">
+                <p>Avg Commits / Day: <strong id="stat-avg">-</strong></p>
+                <p>Peak Commits / Day: <strong id="stat-peak">-</strong></p>
+                <p>Longest Streak: <strong id="stat-streak">-</strong> days</p>
+            </div>
         </div>
 
-        <h3>Full Update History</h3>
+        <h3 id="history-title">Full Update History</h3>
         <table id="commit-history">
             <thead>
                 <tr>
@@ -162,19 +191,16 @@ then, enjoy the git stats!
             const darkOpt = document.getElementById('dark-opt');
             if (theme === 'dark') {
                 document.documentElement.setAttribute('data-theme', 'dark');
-                darkOpt.classList.add('active');
-                lightOpt.classList.remove('active');
+                darkOpt.classList.add('active'); lightOpt.classList.remove('active');
                 localStorage.setItem('theme', 'dark');
             } else {
                 document.documentElement.removeAttribute('data-theme');
-                lightOpt.classList.add('active');
-                darkOpt.classList.remove('active');
+                lightOpt.classList.add('active'); darkOpt.classList.remove('active');
                 localStorage.setItem('theme', 'light');
             }
         }
 
-        const savedTheme = localStorage.getItem('theme') || 
-            (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+        const savedTheme = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
         setTheme(savedTheme);
 
         async function initStats() {
@@ -184,8 +210,45 @@ then, enjoy the git stats!
                 if (data.heatmap && data.history) {
                     renderHeatmap(data.heatmap);
                     renderHistory(data.history);
+                    calculateAdvancedStats(data.heatmap, data.history.length);
+                    document.getElementById('history-title').textContent = `Full Update History (${data.history.length} commits)`;
                 }
             } catch (err) { console.error("Stats load failed:", err); }
+        }
+
+        function calculateAdvancedStats(heatmap, totalCommits) {
+            const dates = Object.keys(heatmap).sort();
+            if (dates.length === 0) return;
+
+            // 1. Average (Commits / days from first commit to today)
+            const firstDate = new Date(dates[0]);
+            const today = new Date();
+            const diffDays = Math.max(1, Math.ceil((today - firstDate) / (1000 * 60 * 60 * 24)));
+            document.getElementById('stat-avg').textContent = (totalCommits / diffDays).toFixed(2);
+
+            // 2. Peak
+            const peak = Math.max(...Object.values(heatmap));
+            document.getElementById('stat-peak').textContent = peak;
+
+            // 3. Longest Streak
+            let maxStreak = 0;
+            let currentStreak = 0;
+            const checkDate = new Date(today);
+
+            // Check the last 182 days for the streak
+            for (let i = 0; i <= 182; i++) {
+                const d = new Date(today);
+                d.setDate(today.getDate() - i);
+                const ds = d.toISOString().split('T')[0];
+                
+                if (heatmap[ds]) {
+                    currentStreak++;
+                    maxStreak = Math.max(maxStreak, currentStreak);
+                } else {
+                    currentStreak = 0;
+                }
+            }
+            document.getElementById('stat-streak').textContent = maxStreak;
         }
 
         function renderHeatmap(heatmapData) {
@@ -194,10 +257,8 @@ then, enjoy the git stats!
             const today = new Date();
             const daysToRender = 182;
             
-            grid.innerHTML = '';
-            monthRow.innerHTML = '';
-            let currentColumn = 1;
-            let lastMonth = -1;
+            grid.innerHTML = ''; monthRow.innerHTML = '';
+            let currentColumn = 1; let lastMonth = -1;
             const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
             const startDate = new Date(today);
             startDate.setDate(today.getDate() - daysToRender);

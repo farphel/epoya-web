@@ -8,7 +8,10 @@
     "logs": { "enabled": true }
   },
   "triggers": {
-    "crons": ["55 11 * * *"] // 11:55 UTC => 4:55am PDT / 3:55am PST
+    "crons": [
+      "55 11 * * *",  // 11:55 UTC => 4:55am PDT / 3:55am PST
+      "55 2 * * *"    //  2:55 UTC => 7:55pm PDT / 6:55am PST
+    ]
   },
   "assets": {
     "directory": "public"

@@ -194,7 +194,7 @@ then, enjoy the git stats!
         </table>
     </section>
 
-    <script>
+		<script>
         const WORKER_URL = '/api/stats';
 
         function setTheme(theme) {
@@ -230,10 +230,10 @@ then, enjoy the git stats!
         function calculateAdvancedStats(heatmap, totalCommits) {
             const dates = Object.keys(heatmap).sort();
             if (dates.length === 0) return;
-
             const firstDate = new Date(dates[0]);
             const today = new Date();
-            const diffDays = Math.max(1, Math.ceil((today - firstDate) / 86400000));
+            today.setHours(0,0,0,0);
+            const diffDays = Math.max(1, Math.ceil((today - firstDate) / 86400000) + 1);
             document.getElementById('stat-avg').textContent = (totalCommits / diffDays).toFixed(2);
             document.getElementById('stat-peak').textContent = Math.max(...Object.values(heatmap));
 
@@ -250,18 +250,26 @@ then, enjoy the git stats!
         function renderHeatmap(heatmapData) {
             const grid = document.getElementById('heatmap');
             const monthRow = document.getElementById('month-labels');
-            const today = new Date();
-            const daysToRender = 182;
             
+            // Fix: Zero out current time to avoid rounding errors
+            const today = new Date();
+            today.setHours(0,0,0,0);
+            
+            const daysToRender = 182;
             grid.innerHTML = ''; monthRow.innerHTML = '';
             let currentColumn = 1, lastMonth = -1;
             const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+            
             const startDate = new Date(today);
             startDate.setDate(today.getDate() - daysToRender);
             while (startDate.getDay() !== 0) { startDate.setDate(startDate.getDate() - 1); }
 
-            for (let i = 0; i <= Math.floor((today - startDate) / 86400000); i++) {
-                const d = new Date(startDate); d.setDate(startDate.getDate() + i);
+            // Ensure the range includes the current day (today)
+            const totalDays = Math.ceil((today - startDate) / 86400000) + 1;
+
+            for (let i = 0; i < totalDays; i++) {
+                const d = new Date(startDate);
+                d.setDate(startDate.getDate() + i);
                 const dateStr = d.toISOString().split('T')[0];
                 const currentMonth = d.getMonth();
                 
@@ -275,7 +283,7 @@ then, enjoy the git stats!
                     lastMonth = currentMonth;
                 }
                 if (d.getDay() === 6) currentColumn++;
-
+                
                 const count = heatmapData[dateStr] || 0;
                 const cell = document.createElement('div');
                 cell.classList.add('cell');
@@ -304,5 +312,6 @@ then, enjoy the git stats!
 
         initStats();
     </script>
+
 </body>
 </html>

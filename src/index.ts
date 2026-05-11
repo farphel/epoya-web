@@ -1,19 +1,20 @@
 interface Env {
   GITHUB_TOKEN: string;
   EPOYA_CACHE: KVNamespace;
-  // This binding provides access to your static files (index.html, images, etc.)
   ASSETS: { fetch: typeof fetch };
 }
 
 export default {
+  // 1. AUTOMATED SYNC
   async scheduled(event: any, env: Env, ctx: ExecutionContext): Promise<void> {
     await this.performGithubSync(env);
   },
 
+  // 2. REQUEST HANDLER
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
 
-    // 1. API Route: Fetch the heatmap and history JSON
+    // API Route: Deliver the raw commit data to the frontend
     if (url.pathname === "/api/stats") {
       const data = await env.EPOYA_CACHE.get("stats");
       return new Response(data || "{}", {
@@ -24,7 +25,7 @@ export default {
       });
     }
 
-    // 2. Debug Route: Manually trigger the GitHub sync
+    // Debug Route: Manually trigger a refresh of the data
     if (url.pathname === "/test-cron") {
       try {
         const result = await this.performGithubSync(env);
@@ -34,65 +35,68 @@ export default {
       }
     }
 
-    // 3. Asset Handling & Bot Scan Suppression
-    // Check if ASSETS exists before calling it to prevent "undefined" errors in logs
+    // Asset Handling: Serve index.html, images, etc.
     if (env.ASSETS && typeof env.ASSETS.fetch === 'function') {
       return env.ASSETS.fetch(request);
     }
 
-    // 4. Fallback: Silent 404 for random bot scans (sitemap.xml, etc.)
+    // Fallback: Silent 404 for random bot scans
     return new Response("Not Found", { status: 404 });
   },
 
+  // 3. DATA PROCESSING LOGIC
   async performGithubSync(env: Env): Promise<number> {
-      const repo = "farphel/epoya";
-      const token = env.GITHUB_TOKEN;
-      const sinceDate = new Date();
-      sinceDate.setDate(sinceDate.getDate() - 182);
+    const repo = "farphel/epoya";
+    const token = env.GITHUB_TOKEN;
+    const sinceDate = new Date();
+    sinceDate.setDate(sinceDate.getDate() - 182); // Rolling 6-month window
+    const ISO_SINCE = sinceDate.toISOString();
 
-      const response = await fetch(`https://api.github.com/repos/${repo}/commits?since=${sinceDate.toISOString()}&per_page=100`, {
+    let allCommits: any[] = [];
+    let page = 1;
+    let keepFetching = true;
+
+    // Fetch up to 700 commits (7 pages) to handle your high development velocity
+    while (keepFetching && page <= 7) { 
+      const response = await fetch(
+        `https://api.github.com/repos/${repo}/commits?since=${ISO_SINCE}&per_page=100&page=${page}`,
+        {
           headers: {
-              "Authorization": `Bearer ${token}`,
-              "User-Agent": "Epoya-Commit-Check",
-              "Accept": "application/vnd.github+json"
+            "Authorization": `Bearer ${token}`,
+            "User-Agent": "Epoya-Commit-Check",
+            "Accept": "application/vnd.github+json"
           },
-      });
+        }
+      );
 
       if (!response.ok) throw new Error(`GitHub API Error: ${response.status}`);
-      const commits: any = await response.json();
       
-      // Create a simple map for the heatmap using UTC initially to maintain sync
-      const heatmap: Record<string, number> = {};
-      const history = commits.map((c: any) => {
-          const rawDate = c.commit.author.date; // Keeping the 'Z' (UTC) intact
-          return {
-              sha: c.sha.substring(0, 7),
-              rawDate: rawDate, 
-              author: c.author?.login || "unknown",
-              msg: c.commit.message.split('\n')[0]
-          };
-      });
-
-      // Store raw data; the frontend will re-calculate the heatmap grouping
-      await env.EPOYA_CACHE.put("stats", JSON.stringify({ history }));
-      return commits.length;
+      const pageCommits: any = await response.json();
+      
+      if (pageCommits.length === 0) {
+        keepFetching = false;
+      } else {
+        allCommits = allCommits.concat(pageCommits);
+        // If we received fewer than 100, there are no more pages to fetch
+        if (pageCommits.length < 100) {
+          keepFetching = false;
+        } else {
+          page++;
+        }
+      }
     }
 
+    // Map the raw data. We preserve the UTC 'rawDate' for the frontend to process local timezones.
     const stats = {
-      heatmap: {} as Record<string, number>,
       history: allCommits.map((c: any) => ({
         sha: c.sha.substring(0, 7),
-        date: c.commit.author.date.split('T')[0],
+        rawDate: c.commit.author.date, // Preserves UTC format: YYYY-MM-DDTHH:MM:SSZ
         author: c.author?.login || "unknown",
         msg: c.commit.message.split('\n')[0]
       }))
     };
 
-    allCommits.forEach((c: any) => {
-      const date = c.commit.author.date.split('T')[0];
-      stats.heatmap[date] = (stats.heatmap[date] || 0) + 1;
-    });
-
+    // Store the updated history in KV
     await env.EPOYA_CACHE.put("stats", JSON.stringify(stats));
     return allCommits.length;
   }

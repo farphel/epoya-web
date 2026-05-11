@@ -45,42 +45,37 @@ export default {
   },
 
   async performGithubSync(env: Env): Promise<number> {
-    const repo = "farphel/epoya";
-    const token = env.GITHUB_TOKEN;
-    const sinceDate = new Date();
-    sinceDate.setDate(sinceDate.getDate() - 182); // Rolling 6 months
-    const ISO_SINCE = sinceDate.toISOString();
+      const repo = "farphel/epoya";
+      const token = env.GITHUB_TOKEN;
+      const sinceDate = new Date();
+      sinceDate.setDate(sinceDate.getDate() - 182);
 
-    let allCommits: any[] = [];
-    let page = 1;
-    let keepFetching = true;
-
-    // Buffer for up to 700 commits in the 6-month window
-    while (keepFetching && page <= 7) { 
-      const response = await fetch(
-        `https://api.github.com/repos/${repo}/commits?since=${ISO_SINCE}&per_page=100&page=${page}`,
-        {
+      const response = await fetch(`https://api.github.com/repos/${repo}/commits?since=${sinceDate.toISOString()}&per_page=100`, {
           headers: {
-            "Authorization": `Bearer ${token}`,
-            "User-Agent": "Epoya-Commit-Check",
-            "Accept": "application/vnd.github+json"
+              "Authorization": `Bearer ${token}`,
+              "User-Agent": "Epoya-Commit-Check",
+              "Accept": "application/vnd.github+json"
           },
-        }
-      );
+      });
 
       if (!response.ok) throw new Error(`GitHub API Error: ${response.status}`);
+      const commits: any = await response.json();
       
-      const pageCommits: any = await response.json();
-      if (pageCommits.length === 0) {
-        keepFetching = false;
-      } else {
-        allCommits = allCommits.concat(pageCommits);
-        if (pageCommits.length < 100) {
-          keepFetching = false;
-        } else {
-          page++;
-        }
-      }
+      // Create a simple map for the heatmap using UTC initially to maintain sync
+      const heatmap: Record<string, number> = {};
+      const history = commits.map((c: any) => {
+          const rawDate = c.commit.author.date; // Keeping the 'Z' (UTC) intact
+          return {
+              sha: c.sha.substring(0, 7),
+              rawDate: rawDate, 
+              author: c.author?.login || "unknown",
+              msg: c.commit.message.split('\n')[0]
+          };
+      });
+
+      // Store raw data; the frontend will re-calculate the heatmap grouping
+      await env.EPOYA_CACHE.put("stats", JSON.stringify({ history }));
+      return commits.length;
     }
 
     const stats = {

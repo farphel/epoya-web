@@ -197,6 +197,21 @@ then, enjoy the git stats!
 		<script>
         const WORKER_URL = '/api/stats';
 
+        // --- TIMEZONE HELPERS ---
+        function getPacificDateString(date) {
+            return new Intl.DateTimeFormat('en-CA', {
+                timeZone: 'America/Los_Angeles',
+                year: 'numeric', month: '2-digit', day: '2-digit'
+            }).format(date);
+        }
+
+        function formatPacificDisplay(isoStr) {
+            return new Intl.DateTimeFormat('en-US', {
+                timeZone: 'America/Los_Angeles',
+                month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true
+            }).format(new Date(isoStr));
+        }
+
         function setTheme(theme) {
             const lightOpt = document.getElementById('light-opt');
             const darkOpt = document.getElementById('dark-opt');
@@ -218,10 +233,17 @@ then, enjoy the git stats!
             try {
                 const response = await fetch(WORKER_URL);
                 const data = await response.json();
-                if (data.heatmap && data.history) {
-                    renderHeatmap(data.heatmap);
+                if (data.history) {
+                    // Re-calculate heatmap grouping based on Pacific Time
+                    const heatmap = {};
+                    data.history.forEach(c => {
+                        const ds = getPacificDateString(new Date(c.rawDate));
+                        heatmap[ds] = (heatmap[ds] || 0) + 1;
+                    });
+
+                    renderHeatmap(heatmap);
                     renderHistory(data.history);
-                    calculateAdvancedStats(data.heatmap, data.history.length);
+                    calculateAdvancedStats(heatmap, data.history.length);
                     document.getElementById('history-title').textContent = `Full Update History (${data.history.length} commits)`;
                 }
             } catch (err) { console.error("Stats load failed:", err); }
@@ -232,15 +254,14 @@ then, enjoy the git stats!
             if (dates.length === 0) return;
             const firstDate = new Date(dates[0]);
             const today = new Date();
-            today.setHours(0,0,0,0);
             const diffDays = Math.max(1, Math.ceil((today - firstDate) / 86400000) + 1);
             document.getElementById('stat-avg').textContent = (totalCommits / diffDays).toFixed(2);
             document.getElementById('stat-peak').textContent = Math.max(...Object.values(heatmap));
 
             let maxStreak = 0, currentStreak = 0;
             for (let i = 0; i <= 182; i++) {
-                const d = new Date(today); d.setDate(today.getDate() - i);
-                const ds = d.toISOString().split('T')[0];
+                const d = new Date(); d.setDate(d.getDate() - i);
+                const ds = getPacificDateString(d);
                 if (heatmap[ds]) { currentStreak++; maxStreak = Math.max(maxStreak, currentStreak); }
                 else { currentStreak = 0; }
             }
@@ -250,27 +271,22 @@ then, enjoy the git stats!
         function renderHeatmap(heatmapData) {
             const grid = document.getElementById('heatmap');
             const monthRow = document.getElementById('month-labels');
-            
-            // Fix: Zero out current time to avoid rounding errors
             const today = new Date();
-            today.setHours(0,0,0,0);
-            
             const daysToRender = 182;
             grid.innerHTML = ''; monthRow.innerHTML = '';
+            
             let currentColumn = 1, lastMonth = -1;
             const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
             
-            const startDate = new Date(today);
-            startDate.setDate(today.getDate() - daysToRender);
+            const startDate = new Date();
+            startDate.setDate(startDate.getDate() - daysToRender);
             while (startDate.getDay() !== 0) { startDate.setDate(startDate.getDate() - 1); }
 
-            // Ensure the range includes the current day (today)
             const totalDays = Math.ceil((today - startDate) / 86400000) + 1;
 
             for (let i = 0; i < totalDays; i++) {
-                const d = new Date(startDate);
-                d.setDate(startDate.getDate() + i);
-                const dateStr = d.toISOString().split('T')[0];
+                const d = new Date(startDate); d.setDate(startDate.getDate() + i);
+                const dateStr = getPacificDateString(d);
                 const currentMonth = d.getMonth();
                 
                 if (currentMonth !== lastMonth && d.getDay() === 0) {
@@ -303,7 +319,7 @@ then, enjoy the git stats!
             tbody.innerHTML = history.map(c => `
                 <tr>
                     <td><code>${c.sha}</code></td>
-                    <td>${c.date}</td>
+                    <td>${formatPacificDisplay(c.rawDate)}</td>
                     <td><strong>${c.author}</strong></td>
                     <td>${c.msg}</td>
                 </tr>

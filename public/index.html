@@ -2,101 +2,40 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <link rel="icon" type="image/x-icon" href="/favicon.ico">
     <title>Epoya Game - Devlog</title>
     <style>
         :root {
-            --bg-color: #ffffff;
-            --text-color: #1f2328;
-            --secondary-text: #636c76;
-            --border-color: #d0d7de;
-            --table-hover: #f6f8fa;
-            --code-bg: #eff1f3;
-            --cell-empty: #ebedf0;
-            --cell-outline: rgba(27, 31, 35, 0.06);
+            --bg-color: #ffffff; --text-color: #1f2328; --secondary-text: #636c76;
+            --border-color: #d0d7de; --table-hover: #f6f8fa; --code-bg: #eff1f3;
+            --cell-empty: #ebedf0; --cell-outline: rgba(27, 31, 35, 0.06);
             --lvl1: #9be9a8; --lvl2: #40c463; --lvl3: #30a14e; --lvl4: #216e39;
             --toggle-active-bg: #ffffff;
+            --stat-add: #1a7f37; --stat-del: #cf222e;
         }
 
         [data-theme="dark"] {
-            --bg-color: #0d1117;
-            --text-color: #e6edf3;
-            --secondary-text: #7d8590;
-            --border-color: #30363d;
-            --table-hover: #161b22;
-            --code-bg: #6e768166;
-            --cell-empty: #161b22;
-            --cell-outline: rgba(255, 255, 255, 0.05);
+            --bg-color: #0d1117; --text-color: #e6edf3; --secondary-text: #7d8590;
+            --border-color: #30363d; --table-hover: #161b22; --code-bg: #6e768166;
+            --cell-empty: #161b22; --cell-outline: rgba(255, 255, 255, 0.05);
             --lvl1: #0e4429; --lvl2: #006d32; --lvl3: #26a641; --lvl4: #39d353;
             --toggle-active-bg: #1f242c;
+            --stat-add: #3fb950; --stat-del: #f85149;
         }
 
-        @font-face {
-          font-family: 'berenika';
-          /* src: url('/fonts/Berenika-Bold.ttf') format('truetype'); */
-          src: url('/fonts/Berenika-Book.ttf') format('truetype');
-          font-weight: normal;
-          font-style: normal;
-        }
-
-        body {
-            /* font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; */
-            font-family: berenika;
-            max-width: 1000px;
-            margin: 0 auto;
-            padding: 20px;
-            color: var(--text-color);
-            background-color: var(--bg-color);
-            transition: background-color 0.2s;
-            box-sizing: border-box;
-        }
-
-        /* HEADER & TOGGLE */
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; max-width: 1000px; margin: 0 auto; padding: 20px; color: var(--text-color); background-color: var(--bg-color); transition: background-color 0.2s; box-sizing: border-box; }
         .header-nav { display: flex; justify-content: flex-end; margin-bottom: 20px; }
         .toggle-group { display: flex; background: var(--table-hover); border: 1px solid var(--border-color); border-radius: 6px; padding: 2px; user-select: none; }
         .toggle-option { padding: 6px 12px; font-size: 12px; font-weight: 600; cursor: pointer; border-radius: 4px; color: var(--secondary-text); }
         .toggle-option.active { background: var(--toggle-active-bg); color: var(--text-color); box-shadow: 0 1px 3px rgba(0,0,0,0.1); outline: 1.5px solid var(--lvl3); }
 
-        /* GAME INFO */
         .game-info { overflow: auto; margin-bottom: 30px; }
         .splash-img { float: right; width: 40%; max-width: 400px; margin: 0 0 20px 20px; border-radius: 8px; border: 1px solid var(--border-color); }
         .description-text p { margin-top: 0; margin-bottom: 16px; line-height: 1.6; }
 
-        /* STATS SECTION LAYOUT  - EQUAL HEIGHTS */
-        .stats-grid-container {
-            display: flex;
-            gap: 20px;
-            align-items: stretch;
-            margin-bottom: 20px;
-        }
-
-        .heatmap-wrapper {
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            padding: 16px;
-            border: 1px solid var(--border-color);
-            border-radius: 6px;
-            background: var(--bg-color);
-        }
-
-        .heatmap-internal {
-            display: grid;
-            grid-template-areas: ". months" "days grid";
-            column-gap: 8px;
-        }
-
-        .summary-stats {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            padding: 16px;
-            border: 1px solid var(--border-color);
-            border-radius: 6px;
-            background: var(--table-hover);
-        }
-
+        .stats-grid-container { display: flex; gap: 20px; align-items: stretch; margin-bottom: 20px; }
+        .heatmap-wrapper { display: flex; flex-direction: column; justify-content: center; padding: 16px; border: 1px solid var(--border-color); border-radius: 6px; background: var(--bg-color); }
+        .heatmap-internal { display: grid; grid-template-areas: ". months" "days grid"; column-gap: 8px; }
+        .summary-stats { flex: 1; display: flex; flex-direction: column; justify-content: center; padding: 16px; border: 1px solid var(--border-color); border-radius: 6px; background: var(--table-hover); }
         .summary-stats p { margin: 10px 0; font-size: 14px; }
         .summary-stats strong { color: var(--lvl4); font-size: 16px; }
 
@@ -110,11 +49,16 @@
         .level-4 { background-color: var(--lvl4); }
 
         h3 { clear: both; margin-top: 40px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; }
-
-        #commit-history { width: 100%; border-collapse: collapse; font-family: ui-monospace, SFMono-Regular, monospace; font-size: 13px; white-space: nowrap; }
-        #commit-history th, #commit-history td { text-align: left; padding: 12px 8px; border-bottom: 1px solid var(--border-color); }
+        #commit-history { width: 100%; border-collapse: collapse; font-family: ui-monospace, SFMono-Regular, monospace; font-size: 13px; }
+        #commit-history th, #commit-history td { text-align: left; padding: 12px 8px; border-bottom: 1px solid var(--border-color); vertical-align: top; }
         #commit-history tr:hover { background-color: var(--table-hover); }
         code { background: var(--code-bg); padding: 2px 4px; border-radius: 4px; }
+
+        /* SHORTSTAT INLINE FORMATTING */
+        .commit-msg-container { display: flex; flex-direction: column; gap: 4px; }
+        .git-shortstat { font-size: 11px; color: var(--secondary-text); font-family: -apple-system, BlinkMacSystemFont, sans-serif; }
+        .stat-additions { color: var(--stat-add); font-weight: 600; }
+        .stat-deletions { color: var(--stat-del); font-weight: 600; }
     </style>
 </head>
 <body>
@@ -131,29 +75,13 @@
     <section class="game-info">
         <img src="splashscreen-hd.png" alt="Epoya Splash Screen" class="splash-img">
         <div class="description-text">
-
-<p>
-<strong>Epoya</strong> is going to be (currently under heavy development)
-a top-down, 2D, vector art RPG game. The game is intended to be an open-world,
-sandbox, "horizontal progression" game inspired by games like Minecraft,
-Old School Rune Scape, and Stardew Valley.
+<p><strong>Epoya</strong> is going to be (currently under heavy development) a top-down, 2D, vector art RPG game. The game is intended to be an open-world, sandbox, "horizontal progression" game inspired by games like Minecraft, Old School Rune Scape, and Stardew Valley.
 </p>
-
 <p>
-The game will feature multiple races, crafting, co-op play, exploration,
-economy, fishing, hardcore mode, quests, secret finding, housing, combat,
-and more. The killer feature of the game will be the main story and a high
-degree of player agency (inspired by Undertale) that will make each
-adventurer's journey unique.
+The game will feature multiple races, crafting, co-op play, exploration, economy, fishing, hardcore mode, quests, secret finding, housing, combat, and more. The killer feature of the game will be the main story and a high degree of player agency (inspired by Undertale) that will make each adventurer's journey unique.
 </p>
-
 <p>
-At this point (mid-2026), the game is in very early development by a solo,
-indie, (inexperienced) game developer. It is likely to be quite some time
-before there is anything worth showing. Below is a mirror of GitHub
-activity to show that the game is actually being worked on slowly but surely.
-In the future, there will be devlogs on YouTube and a Steam page. Until
-then, enjoy the git stats!
+At this point (mid-2026), the game is in very early development by a solo, indie, (inexperienced) game developer. It is likely to be quite some time before there is anything worth showing. Below is a mirror of GitHub activity to show that the game is actually being worked on slowly but surely. In the future, there will be devlogs on YouTube and a Steam page. Until then, enjoy the git stats!
 </p>
 
 
@@ -168,8 +96,8 @@ then, enjoy the git stats!
                     <div id="month-labels" class="month-labels"></div>
                     <div class="day-labels">
                         <div></div><div>Mon</div><div></div><div>Wed</div><div></div><div>Fri</div><div></div>
-                  </div>
-                  <div id="heatmap" class="contribution-grid"></div>
+                    </div>
+                    <div id="heatmap" class="contribution-grid"></div>
                 </div>
             </div>
 
@@ -185,31 +113,27 @@ then, enjoy the git stats!
             <thead>
                 <tr>
                     <th>SHA</th>
-                    <th>Date</th>
+                    <th>Date (Pacific)</th>
                     <th>Author</th>
-                    <th>Message</th>
+                    <th>Message & Scope</th>
                 </tr>
             </thead>
             <tbody></tbody>
         </table>
     </section>
 
-		<script>
+    <script>
         const WORKER_URL = '/api/stats';
 
-        // --- TIMEZONE HELPERS ---
         function getPacificDateString(date) {
             return new Intl.DateTimeFormat('en-CA', {
-                timeZone: 'America/Los_Angeles',
-                year: 'numeric', month: '2-digit', day: '2-digit'
+                timeZone: 'America/Los_Angeles', year: 'numeric', month: '2-digit', day: '2-digit'
             }).format(date);
         }
 
-        // month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true
-        function formatPacificDisplay(isoStr) {
+        function formatPacificDateOnly(isoStr) {
             return new Intl.DateTimeFormat('en-CA', {
-                timeZone: 'America/Los_Angeles',
-                year: 'numeric', month: '2-digit', day: '2-digit', hour12: false
+                timeZone: 'America/Los_Angeles', year: 'numeric', month: '2-digit', day: '2-digit'
             }).format(new Date(isoStr));
         }
 
@@ -235,7 +159,6 @@ then, enjoy the git stats!
                 const response = await fetch(WORKER_URL);
                 const data = await response.json();
                 if (data.history) {
-                    // Re-calculate heatmap grouping based on Pacific Time
                     const heatmap = {};
                     data.history.forEach(c => {
                         const ds = getPacificDateString(new Date(c.rawDate));
@@ -275,10 +198,8 @@ then, enjoy the git stats!
             const today = new Date();
             const daysToRender = 182;
             grid.innerHTML = ''; monthRow.innerHTML = '';
-            
             let currentColumn = 1, lastMonth = -1;
             const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-            
             const startDate = new Date();
             startDate.setDate(startDate.getDate() - daysToRender);
             while (startDate.getDay() !== 0) { startDate.setDate(startDate.getDate() - 1); }
@@ -289,7 +210,6 @@ then, enjoy the git stats!
                 const d = new Date(startDate); d.setDate(startDate.getDate() + i);
                 const dateStr = getPacificDateString(d);
                 const currentMonth = d.getMonth();
-                
                 if (currentMonth !== lastMonth && d.getDay() === 0) {
                     if (lastMonth !== -1 || d.getDate() <= 7) {
                         const mLabel = document.createElement('div');
@@ -300,7 +220,6 @@ then, enjoy the git stats!
                     lastMonth = currentMonth;
                 }
                 if (d.getDay() === 6) currentColumn++;
-                
                 const count = heatmapData[dateStr] || 0;
                 const cell = document.createElement('div');
                 cell.classList.add('cell');
@@ -317,18 +236,36 @@ then, enjoy the git stats!
 
         function renderHistory(history) {
             const tbody = document.querySelector('#commit-history tbody');
-            tbody.innerHTML = history.map(c => `
-                <tr>
-                    <td><code>${c.sha}</code></td>
-                    <td>${formatPacificDisplay(c.rawDate)}</td>
-                    <td><strong>${c.author}</strong></td>
-                    <td>${c.msg}</td>
-                </tr>
-            `).join('');
+            tbody.innerHTML = history.map(c => {
+                // Generate the Git Shortstat layout if the stats data is present
+                let shortstatMarkup = '';
+                if (c.filesChanged !== undefined) {
+                    shortstatMarkup = `
+                        <div class="git-shortstat">
+                            ${c.filesChanged} files changed, 
+                            <span class="stat-additions">+${c.additions}</span> additions, 
+                            <span class="stat-deletions">-${c.deletions}</span> deletions
+                        </div>
+                    `;
+                }
+
+                return `
+                    <tr>
+                        <td><code>${c.sha}</code></td>
+                        <td>${formatPacificDateOnly(c.rawDate)}</td>
+                        <td><strong>${c.author}</strong></td>
+                        <td>
+                            <div class="commit-msg-container">
+                                <div>${c.msg}</div>
+                                ${shortstatMarkup}
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
         }
 
         initStats();
     </script>
-
 </body>
 </html>

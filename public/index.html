@@ -52,10 +52,11 @@
         .heatmap-wrapper { display: flex; flex-direction: column; justify-content: center; padding: 16px; border: 1px solid var(--border-color); border-radius: 6px; background: var(--bg-color); }
         .heatmap-internal { display: grid; grid-template-areas: ". months" "days grid"; column-gap: 8px; }
         
-        .summary-stats { flex: 1; min-width: 260px; display: flex; flex-direction: column; justify-content: center; padding: 16px; border: 1px solid var(--border-color); border-radius: 6px; background: var(--table-hover); }
-        .summary-stats p { margin: 8px 0; font-size: 14px; }
-        .summary-stats strong { color: var(--lvl4); font-size: 16px; }
-        /* Style adjustments for additions/deletions totals to preserve clear visual cues */
+        /* Optimized padding and vertical spacing to prevent histogram distortion */
+        .summary-stats { flex: 1; min-width: 240px; display: flex; flex-direction: column; justify-content: center; padding: 10px 16px; border: 1px solid var(--border-color); border-radius: 6px; background: var(--table-hover); }
+        /* Decreased font sizing and squashed margins */
+        .summary-stats p { margin: 4px 0; font-size: 12px; }
+        .summary-stats strong { color: var(--lvl4); font-size: 14px; }
         .summary-stats .add-total { color: var(--stat-add); }
         .summary-stats .del-total { color: var(--stat-del); }
 
@@ -70,17 +71,13 @@
 
         h3 { clear: both; margin-top: 40px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; }
         
-        /* NOTE: Swapped white-space: nowrap to normal to prevent messages from spilling horizontally */
-        #commit-history { width: 100%; border-collapse: collapse; font-family: ui-monospace, SFMono-Regular, monospace; font-size: 13px; table-layout: fixed; }
-        #commit-history th, #commit-history td { text-align: left; padding: 12px 8px; border-bottom: 1px solid var(--border-color); vertical-align: top; overflow: hidden; }
-        #commit-history th:nth-child(1), #commit-history td:nth-child(1) { width: 10%; }
-        #commit-history th:nth-child(2), #commit-history td:nth-child(2) { width: 15%; }
-        #commit-history th:nth-child(3), #commit-history td:nth-child(3) { width: 15%; }
-        #commit-history th:nth-child(4), #commit-history td:nth-child(4) { width: 60%; }
+        /* Restored to 100% layout width without rigid table-layout cuts */
+        #commit-history { width: 100%; border-collapse: collapse; font-family: ui-monospace, SFMono-Regular, monospace; font-size: 13px; }
+        #commit-history th, #commit-history td { text-align: left; padding: 12px 8px; border-bottom: 1px solid var(--border-color); vertical-align: top; }
         #commit-history tr:hover { background-color: var(--table-hover); }
         code { background: var(--code-bg); padding: 2px 4px; border-radius: 4px; }
 
-        .commit-msg-container { display: flex; flex-direction: column; gap: 4px; white-space: normal; }
+        .commit-msg-container { display: flex; flex-direction: column; gap: 4px; }
         .git-shortstat { font-size: 11px; color: var(--secondary-text); font-family: -apple-system, BlinkMacSystemFont, sans-serif; }
         .stat-additions { color: var(--stat-add); font-weight: 600; }
         .stat-deletions { color: var(--stat-del); font-weight: 600; }
@@ -153,152 +150,4 @@
 
         function formatPacificDateOnly(isoStr) {
             return new Intl.DateTimeFormat('en-CA', {
-                timeZone: 'America/Los_Angeles', year: 'numeric', month: '2-digit', day: '2-digit'
-            }).format(new Date(isoStr));
-        }
-
-        function setTheme(theme) {
-            const lightOpt = document.getElementById('light-opt');
-            const darkOpt = document.getElementById('dark-opt');
-            if (theme === 'dark') {
-                document.documentElement.setAttribute('data-theme', 'dark');
-                darkOpt.classList.add('active'); lightOpt.classList.remove('active');
-                localStorage.setItem('theme', 'dark');
-            } else {
-                document.documentElement.removeAttribute('data-theme');
-                lightOpt.classList.add('active'); darkOpt.classList.remove('active');
-                localStorage.setItem('theme', 'light');
-            }
-        }
-
-        const savedTheme = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
-        setTheme(savedTheme);
-
-        async function initStats() {
-            try {
-                const response = await fetch(WORKER_URL);
-                const data = await response.json();
-                if (data.history) {
-                    const heatmap = {};
-                    data.history.forEach(c => {
-                        const ds = getPacificDateString(new Date(c.rawDate));
-                        heatmap[ds] = (heatmap[ds] || 0) + 1;
-                    });
-
-                    renderHeatmap(heatmap);
-                    renderHistory(data.history);
-                    calculateAdvancedStats(heatmap, data.history);
-                    document.getElementById('history-title').textContent = `Full Update History (${data.history.length} commits)`;
-                }
-            } catch (err) { console.error("Stats load failed:", err); }
-        }
-
-        function calculateAdvancedStats(heatmap, historyArray) {
-            const totalCommits = historyArray.length;
-            const dates = Object.keys(heatmap).sort();
-            if (dates.length === 0) return;
-            const firstDate = new Date(dates[0]);
-            const today = new Date();
-            const diffDays = Math.max(1, Math.ceil((today - firstDate) / 86400000) + 1);
-            document.getElementById('stat-avg').textContent = (totalCommits / diffDays).toFixed(2);
-            document.getElementById('stat-peak').textContent = Math.max(...Object.values(heatmap));
-
-            // Streak Tracking
-            let maxStreak = 0, currentStreak = 0;
-            for (let i = 0; i <= 182; i++) {
-                const d = new Date(); d.setDate(d.getDate() - i);
-                const ds = getPacificDateString(d);
-                if (heatmap[ds]) { currentStreak++; maxStreak = Math.max(maxStreak, currentStreak); }
-                else { currentStreak = 0; }
-            }
-            document.getElementById('stat-streak').textContent = maxStreak;
-
-            // Shortstat Summation Processing
-            let totalAdds = 0;
-            let totalDels = 0;
-            historyArray.forEach(c => {
-                if (c.additions) totalAdds += c.additions;
-                if (c.deletions) totalDels += c.deletions;
-            });
-
-            // Inject the formatted aggregate sums to the UI text nodes
-            document.getElementById('stat-additions').textContent = totalAdds.toLocaleString();
-            document.getElementById('stat-deletions').textContent = totalDels.toLocaleString();
-        }
-
-        function renderHeatmap(heatmapData) {
-            const grid = document.getElementById('heatmap');
-            const monthRow = document.getElementById('month-labels');
-            const today = new Date();
-            const daysToRender = 182;
-            grid.innerHTML = ''; monthRow.innerHTML = '';
-            let currentColumn = 1, lastMonth = -1;
-            const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-            const startDate = new Date();
-            startDate.setDate(startDate.getDate() - daysToRender);
-            while (startDate.getDay() !== 0) { startDate.setDate(startDate.getDate() - 1); }
-
-            const totalDays = Math.ceil((today - startDate) / 86400000) + 1;
-
-            for (let i = 0; i < totalDays; i++) {
-                const d = new Date(startDate); d.setDate(startDate.getDate() + i);
-                const dateStr = getPacificDateString(d);
-                const currentMonth = d.getMonth();
-                if (currentMonth !== lastMonth && d.getDay() === 0) {
-                    if (lastMonth !== -1 || d.getDate() <= 7) {
-                        const mLabel = document.createElement('div');
-                        mLabel.textContent = monthNames[currentMonth];
-                        mLabel.style.gridColumn = currentColumn;
-                        monthRow.appendChild(mLabel);
-                    }
-                    lastMonth = currentMonth;
-                }
-                if (d.getDay() === 6) currentColumn++;
-                const count = heatmapData[dateStr] || 0;
-                const cell = document.createElement('div');
-                cell.classList.add('cell');
-                cell.title = `${dateStr}: ${count} commits`;
-                if (count > 0) {
-                    if (count < 2) cell.classList.add('level-1');
-                    else if (count < 4) cell.classList.add('level-2');
-                    else if (count < 6) cell.classList.add('level-3');
-                    else cell.classList.add('level-4');
-                }
-                grid.appendChild(cell);
-            }
-        }
-
-        function renderHistory(history) {
-            const tbody = document.querySelector('#commit-history tbody');
-            tbody.innerHTML = history.map(c => {
-                let shortstatMarkup = '';
-                if (c.filesChanged !== undefined) {
-                    shortstatMarkup = `
-                        <div class="git-shortstat">
-                            ${c.filesChanged} files changed, 
-                            <span class="stat-additions">+${c.additions}</span> additions, 
-                            <span class="stat-deletions">-${c.deletions}</span> deletions
-                        </div>
-                    `;
-                }
-
-                return `
-                    <tr>
-                        <td><code>${c.sha}</code></td>
-                        <td>${formatPacificDateOnly(c.rawDate)}</td>
-                        <td><strong>${c.author}</strong></td>
-                        <td>
-                            <div class="commit-msg-container">
-                                <div>${c.msg}</div>
-                                ${shortstatMarkup}
-                            </div>
-                        </td>
-                    </tr>
-                `;
-            }).join('');
-        }
-
-        initStats();
-    </script>
-</body>
-</html>
+                timeZone: 'America/Los_Angeles', year: 'numeric', month:

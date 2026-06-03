@@ -130,7 +130,7 @@
             <thead>
                 <tr>
                     <th>SHA</th>
-                    <th>Date (Pacific)</th>
+                    <th>Date</th>
                     <th>Author</th>
                     <th>Message & Scope</th>
                 </tr>
@@ -185,7 +185,7 @@
                     renderHeatmap(heatmap);
                     renderHistory(data.history);
                     calculateAdvancedStats(heatmap, data.history);
-                    document.getElementById('history-title').textContent = `Full Update History (${data.history.length} commits)`;
+                    document.getElementById('history-title').textContent = `Update History (${data.history.length} commits)`;
                 }
             } catch (err) { console.error("Stats load failed:", err); }
         }

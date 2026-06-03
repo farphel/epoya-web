@@ -125,7 +125,7 @@
             </div>
         </div>
 
-        <h3 id="history-title">Full Update History</h3>
+        <h3 id="history-title">Update History</h3>
         <table id="commit-history">
             <thead>
                 <tr>
@@ -280,7 +280,7 @@
                     <tr>
                         <td><code>${c.sha}</code></td>
                         <td>${formatPacificDateOnly(c.rawDate)}</td>
-                        <td>role="strong"<strong>${c.author}</strong></td>
+                        <td>${c.author}</td>
                         <td>
                             <div class="commit-msg-container">
                                 <div>${c.msg}</div>

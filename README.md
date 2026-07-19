@@ -1,6 +1,6 @@
-# Epoya Game
+# Pendulore Game
 
-Go see https://epoya.world for more...
+Go see https://pendulore.world for more...
 
 Or, check out this cool claymore!
 

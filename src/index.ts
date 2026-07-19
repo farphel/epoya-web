@@ -11,7 +11,7 @@ interface CommitData {
 
 interface Env {
   GITHUB_TOKEN: string;
-  EPOYA_CACHE: KVNamespace;
+  PENDULORE_CACHE: KVNamespace;
   ASSETS: { fetch: typeof fetch };
 }
 
@@ -24,7 +24,7 @@ export default {
     const url = new URL(request.url);
 
     if (url.pathname === "/api/stats") {
-      const data = await env.EPOYA_CACHE.get("stats");
+      const data = await env.PENDULORE_CACHE.get("stats");
       return new Response(data || "{}", {
         headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" }
       });
@@ -47,11 +47,11 @@ export default {
   },
 
   async performGithubSync(env: Env): Promise<string> {
-    const repo = "farphel/epoya";
+    const repo = "farphel/pendulore";
     const token = env.GITHUB_TOKEN;
     
     // 1. Fetch current database snapshot from KV
-    const cachedDataRaw = await env.EPOYA_CACHE.get("stats");
+    const cachedDataRaw = await env.PENDULORE_CACHE.get("stats");
     let cachedHistory: CommitData[] = [];
     if (cachedDataRaw) {
       try {
@@ -80,7 +80,7 @@ export default {
         {
           headers: {
             "Authorization": `Bearer ${token}`,
-            "User-Agent": "Epoya-Commit-Check",
+            "User-Agent": "Pendulore-Commit-Check",
             "Accept": "application/vnd.github+json"
           },
         }
@@ -134,7 +134,7 @@ export default {
         {
           headers: {
             "Authorization": `Bearer ${token}`,
-            "User-Agent": "Epoya-Commit-Check",
+            "User-Agent": "Pendulore-Commit-Check",
             "Accept": "application/vnd.github+json"
           },
         }
@@ -157,7 +157,7 @@ export default {
     const finalHistory = baselineHistory.slice(0, 700);
 
     // Persist finalized records back to KV
-    await env.EPOYA_CACHE.put("stats", JSON.stringify({ history: finalHistory }));
+    await env.PENDULORE_CACHE.put("stats", JSON.stringify({ history: finalHistory }));
     
     const remainingMissing = finalHistory.filter(c => !c.hasStats).length;
     return `Sync completed. Filled ${processedCount} entries. ${remainingMissing} commits left to backfill.`;

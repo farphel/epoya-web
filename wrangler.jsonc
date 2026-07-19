@@ -1,6 +1,6 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "pendulore-web",
+  "name": "epoya-web",
   "main": "src/index.ts",
   "compatibility_date": "2026-05-02",
   "observability": {

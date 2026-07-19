@@ -2,7 +2,7 @@
 
 Go see https://pendulore.world for more...
 
-Or, check out this cool claymore!
+Also, check out this cool claymore!
 
 ```
                //
